@@ -66,146 +66,243 @@ class _ProductsPageLargeState extends State<ProductsPageLarge> {
 
   @override
   Widget build(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double screenWidth2 = MediaQuery.of(context).devicePixelRatio;
+    double actualWidth = screenWidth / screenWidth2;
+    double fontSize = 17;
+    if (actualWidth < 1500) {
+      fontSize = 13;
+    } else if (actualWidth < 1700) {
+      fontSize = 14;
+    } else if (actualWidth < 1800) {
+      fontSize = 16;
+    }
+    
+    File textSize = File("Database/Firm/firmDetails.json");
+    dynamic fileContent = textSize.readAsStringSync();
+    fileContent = jsonDecode(fileContent);
+    int fontSizeSetting = int.parse(fileContent['FontSize']);
+    double paraSize = 0.8 * fontSizeSetting;
+    
     return Container(
-      color: ColorPalette.offWhite.withOpacity(0.5),
-      padding: const EdgeInsets.only(top: 38, right: 30, left: 30),
+      padding: const EdgeInsets.only(top: 38, right: 40, left: 40, bottom: 30),
+      color: ColorPalette.offWhite.withOpacity(0.3),
       child: Container(
-          padding: const EdgeInsets.only(top: 38, right: 30, left: 30),
-          decoration: const BoxDecoration(
+        decoration: BoxDecoration(
+            boxShadow: [
+              BoxShadow(
+                  color: const Color.fromARGB(40, 0, 0, 0),
+                  spreadRadius: 0,
+                  blurRadius: 20,
+                  offset: const Offset(0, 4))
+            ],
             color: Colors.white,
-            borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(13), topRight: Radius.circular(13)),
-          ),
-          child: SizedBox(
-            height: double.infinity,
-            width: double.infinity,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    RichText(
-                        text: TextSpan(children: [
-                      const TextSpan(
-                          text: "All ",
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 30)),
-                      TextSpan(
-                          text: "Products ",
-                          style: TextStyle(
-                              color: ColorPalette.blueAccent,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 30)),
-                    ])),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Container(
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: Colors.grey)),
-                            height: 50,
-                            width: 400,
-                            child: TextField(
-                              onChanged: (v) {
-                                shuffleSuggestions(v);
-                              },
-                              style: const TextStyle(
-                                fontFamily: 'Poppins',
-                              ),
-                              decoration: const InputDecoration(
-                                  prefixIcon: Icon(
-                                    Icons.search,
-                                    color: Colors.grey,
-                                  ),
-                                  label: Text("Type To Search Any Product"),
-                                  floatingLabelBehavior:
-                                      FloatingLabelBehavior.never,
-                                  enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide.none),
-                                  focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide.none)),
-                            )),
-                        const SizedBox(
-                          width: 14,
+            borderRadius: BorderRadius.circular(7)),
+        height: double.infinity,
+        width: double.infinity,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Section
+            Container(
+              padding: const EdgeInsets.fromLTRB(40, 32, 40, 24),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  bottom: BorderSide(
+                    color: ColorPalette.offWhite.withOpacity(0.5),
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title and Action Buttons Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Title
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                                text: "All ",
+                                style: TextStyle(
+                                    fontSize: fontSize * 1.8,
+                                    fontWeight: FontWeight.w700,
+                                    fontFamily: 'Gilroy',
+                                    color: ColorPalette.darkBlue,
+                                    letterSpacing: -0.5)),
+                            TextSpan(
+                                text: "Products",
+                                style: TextStyle(
+                                    fontSize: fontSize * 1.8,
+                                    fontWeight: FontWeight.w700,
+                                    fontFamily: 'Gilroy',
+                                    color: ColorPalette.blueAccent,
+                                    letterSpacing: -0.5)),
+                          ],
                         ),
-                        SizedBox(
-                          height: 49,
-                          child: TextButton(
+                      ),
+                      // Action Buttons
+                      Row(
+                        children: [
+                          ElevatedButton(
                               style: ButtonStyle(
-                                  backgroundColor: WidgetStatePropertyAll(
-                                      ColorPalette.blueAccent),
                                   shape: WidgetStatePropertyAll(
                                       RoundedRectangleBorder(
                                           borderRadius:
-                                              BorderRadius.circular(4)))),
+                                              BorderRadius.circular(7))),
+                                  backgroundColor: WidgetStatePropertyAll(
+                                      ColorPalette.blueAccent)),
                               onPressed: () {
                                 showAddProductDialog(
                                     context: context, stateFn: stateFn);
                               },
-                              child: const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 18.0),
-                                child: Text(
-                                  "Add New Product",
-                                  style: TextStyle(color: Colors.white),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20.0, vertical: 12.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      "Add New Product",
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontFamily: 'Poppins',
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: paraSize),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Icon(Icons.add,
+                                        color: Colors.white, size: 18),
+                                  ],
                                 ),
                               )),
-                        ),
-                        const SizedBox(
-                          width: 15,
-                        ),
-                        Tooltip(
-                          message: "Refresh",
-                          child: InkWell(
-                            onTap: () {
-                              refresh();
-                            },
-                            child: const Icon(Icons.refresh),
+                          const SizedBox(width: 12),
+                          Tooltip(
+                            message: "Refresh",
+                            child: InkWell(
+                                onTap: () {
+                                  refresh();
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(7),
+                                    border: Border.all(
+                                        color: ColorPalette.blueAccent, width: 1.5),
+                                    color: Colors.white,
+                                  ),
+                                  child: Icon(Icons.refresh,
+                                      color: ColorPalette.blueAccent, size: 20),
+                                )),
                           ),
-                        )
-                      ],
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+                  // Search Bar
+                  Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(7),
+                      border: Border.all(
+                        color: ColorPalette.offWhite.withOpacity(0.8),
+                        width: 1,
+                      ),
+                      color: ColorPalette.offWhite.withOpacity(0.2),
+                    ),
+                    child: TextField(
+                      onChanged: (v) {
+                        shuffleSuggestions(v);
+                      },
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: paraSize,
+                        color: ColorPalette.darkBlue,
+                      ),
+                      decoration: InputDecoration(
+                          prefixIcon: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Icon(
+                              Icons.search,
+                              color: Colors.grey.shade600,
+                              size: 20,
+                            ),
+                          ),
+                          hintText: "Search by product name, description, or HSN...",
+                          hintStyle: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: paraSize,
+                            color: Colors.grey.shade500,
+                          ),
+                          floatingLabelBehavior: FloatingLabelBehavior.never,
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(7),
+                              borderSide: BorderSide.none),
+                          focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(7),
+                              borderSide: BorderSide(
+                                color: ColorPalette.blueAccent,
+                                width: 1.5,
+                              )),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Table Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(28, 20, 28, 14),
+              child: productTableHeader(),
+            ),
+            // Products List
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 28),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(7),
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                      spreadRadius: 0,
                     ),
                   ],
                 ),
-                const SizedBox(height: 27),
-                productTableHeader(),
-                const SizedBox(
-                  height: 20,
-                ),
-                Expanded(
-                  child: availableProducts.isEmpty
-                      ? nullRecord3()
-                      : ListView.builder(
-                          itemCount: availableProducts.length,
-                          shrinkWrap: true,
-                          itemBuilder: (c, i) {
-                            dynamic temp =
-                                productsContent[availableProducts[i]];
-                            return Column(
-                              children: [
-                                productItemHeader(
-                                    stateFn: stateFn,
-                                    context: context,
-                                    sno: "${i + 1}",
-                                    name: availableProducts[i],
-                                    description: temp['desc'],
-                                    hsn: temp['hsn'],
-                                    rate: temp['rate']),
-                                const SizedBox(
-                                  height: 15,
-                                ),
-                              ],
-                            );
-                          }),
-                )
-              ],
-            ),
-          )),
+                child: availableProducts.isEmpty
+                    ? Center(child: nullRecord3())
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                        itemCount: availableProducts.length,
+                        itemBuilder: (BuildContext c, int i) {
+                          dynamic temp =
+                              productsContent[availableProducts[i]];
+                          return productItemHeader(
+                              stateFn: stateFn,
+                              context: context,
+                              sno: "${i + 1}",
+                              name: availableProducts[i],
+                              description: temp['desc'],
+                              hsn: temp['hsn'],
+                              rate: temp['rate']);
+                        }),
+              ),
+            )
+          ],
+        ),
+      ),
     );
   }
 }
@@ -218,14 +315,25 @@ Widget productItemHeader(
     required String hsn,
     required String rate,
     required Function stateFn}) {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(5),
-      color: (int.parse(sno) - 1) % 2 == 0
-          ? const Color.fromARGB(70, 215, 215, 215)
-          : Colors.white,
-    ),
+  return Column(
+    children: [
+      const SizedBox(height: 6),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(7),
+          color: (int.parse(sno) - 1) % 2 == 0
+              ? ColorPalette.offWhite.withOpacity(0.2)
+              : Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+              spreadRadius: 0,
+            ),
+          ],
+        ),
     // height: 40,
     // width: 1200,
     child: Row(
@@ -416,18 +524,34 @@ Widget productItemHeader(
           ),
         )
       ],
-    ),
+        ),
+      ),
+    ],
   );
 }
 
 Widget productTableHeader() {
   return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10),
     decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(5),
-      color: ColorPalette.blueAccent,
+      borderRadius: BorderRadius.circular(7),
+      gradient: LinearGradient(
+        colors: [
+          ColorPalette.blueAccent,
+          ColorPalette.blueAccent.withOpacity(0.85),
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: ColorPalette.blueAccent.withOpacity(0.25),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
+          spreadRadius: 0,
+        ),
+      ],
     ),
-    height: 40,
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
     // width: 1200,
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -502,10 +626,10 @@ class _AddProductDialogState extends State<AddProductDialog> {
     return Dialog(
       alignment: Alignment.center,
       insetAnimationDuration: const Duration(milliseconds: 0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(7),
           color: Colors.white,
         ),
         height: 470,
@@ -519,8 +643,8 @@ class _AddProductDialogState extends State<AddProductDialog> {
               decoration: const BoxDecoration(
                   color: Color.fromARGB(57, 191, 191, 191),
                   borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(10),
-                      topRight: Radius.circular(10))),
+                      topLeft: Radius.circular(7),
+                      topRight: Radius.circular(7))),
               child: Center(
                   child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -873,10 +997,10 @@ class _EditProductDialogState extends State<EditProductDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(7),
           color: Colors.white,
         ),
         height: 470,
@@ -890,8 +1014,8 @@ class _EditProductDialogState extends State<EditProductDialog> {
               decoration: const BoxDecoration(
                   color: Color.fromARGB(57, 191, 191, 191),
                   borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(10),
-                      topRight: Radius.circular(10))),
+                      topLeft: Radius.circular(7),
+                      topRight: Radius.circular(7))),
               child: Center(
                   child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

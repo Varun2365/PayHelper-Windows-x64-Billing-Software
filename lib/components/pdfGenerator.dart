@@ -45,7 +45,15 @@ Future<String> generatePDF() async {
   String sgst = tempPdfContent['sgst'];
   bool igst = tempPdfContent['igst'];
   String igstV = tempPdfContent['igstV'];
-  String po = tempPdfContent['PO'];
+  dynamic poValue = tempPdfContent['PO'];
+  String po = "";
+  if (poValue != null && poValue != "null" && poValue != "") {
+    String poStr = poValue.toString().trim();
+    if (poStr.isNotEmpty && poStr != "null") {
+      po = poStr;
+    }
+  }
+  log("generatePDF - PO Number: '$po' (raw value: $poValue)");
   String grandTotal = tempPdfContent['grandtotal'];
   String taxRate = tempPdfContent['TaxRate'];
   String taxAmount = tempPdfContent['TaxAmount'];
@@ -359,7 +367,7 @@ Future<String> generatePDF() async {
                                                     pw.Text(":", style: text10)
                                                   ])),
                                           pw.SizedBox(width: 10),
-                                          pw.Text(po == null ? "" : po,
+                                          pw.Text(po,
                                               style: text10)
                                         ]),
                                       ]),

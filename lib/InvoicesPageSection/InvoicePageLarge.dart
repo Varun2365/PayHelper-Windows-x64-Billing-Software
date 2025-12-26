@@ -750,16 +750,18 @@ Widget InvoiceRecordHeader2(
                       const SizedBox(width: 15),
                       InkWell(
                         onTap: () async {
-                          // First, call PreviewSave to ensure the PDF is generated/ready.
-                          await PreviewSave(year, month, sno);
-
-                          // Then, launch the PDF using UrlLauncherPlatform.
                           try {
-                            final String pdfPath =
+                            // Generate and save the PDF (this will create or overwrite the file)
+                            // Pass showDialog: false to suppress the success dialog
+                            String pdfPath = '$currentDirectory\\Database\\PDF';
+                            await savePDF2(year, month, sno, pdfPath, context, showSuccessDialog: false);
+
+                            // Then, launch the PDF using UrlLauncherPlatform.
+                            final String fullPdfPath =
                                 '$currentDirectory\\Database\\PDF\\Bill No.$sno $partyName.pdf';
                             bool launched =
                                 await UrlLauncherPlatform.instance.launch(
-                              pdfPath,
+                              fullPdfPath,
                               useSafariVC: false,
                               useWebView: false,
                               enableJavaScript: true,
@@ -773,14 +775,14 @@ Widget InvoiceRecordHeader2(
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                     content: Text(
-                                        'Could not open the PDF at $pdfPath')),
+                                        'Could not open the PDF at $fullPdfPath')),
                               );
                             }
                           } catch (e) {
-                            // Catch any errors during the launch process
+                            // Catch any errors during the save or launch process
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                  content: Text('Error launching PDF: $e')),
+                                  content: Text('Error generating or opening PDF: $e')),
                             );
                           }
                         },

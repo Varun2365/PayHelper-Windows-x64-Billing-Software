@@ -344,16 +344,27 @@ AddInvoice({
     "TaxAmount": TaxAmount,
     "TotalTax": TotalTax
   };
-  File invoices = File("Database/Invoices/In.json");
+  String year = getYear(DateController.text);
+  String month = getMonth(DateController.text);
+  
+  // Save to Invoices.json (primary storage)
+  File invoices = File("Database/Invoices/Invoices.json");
   dynamic contentt = invoices.readAsStringSync();
   contentt = jsonDecode(contentt);
-  contentt[getYear(DateController.text)] ??= {};
-  contentt[getYear(DateController.text)][getMonth(DateController.text)] ??= {};
-  contentt[getYear(DateController.text)][getMonth(DateController.text)]
-      [InvoiceController.text] ??= {};
-  contentt[getYear(DateController.text)][getMonth(DateController.text)]
-      [InvoiceController.text] = content;
+  contentt[year] ??= {};
+  contentt[year][month] ??= {};
+  contentt[year][month][InvoiceController.text] = content;
   invoices.writeAsStringSync(jsonEncode(contentt));
+  
+  // Also save to In.json (for home page history)
+  File inFile = File("Database/Invoices/In.json");
+  dynamic inContent = inFile.readAsStringSync();
+  inContent = jsonDecode(inContent);
+  inContent[year] ??= {};
+  inContent[year][month] ??= {};
+  inContent[year][month][InvoiceController.text] = content;
+  inFile.writeAsStringSync(jsonEncode(inContent));
+  
   onFileChange();
 }
 

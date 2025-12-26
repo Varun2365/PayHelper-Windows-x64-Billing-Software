@@ -6,7 +6,6 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:billing/InvoicesPageSection/InvoicePageLarge.dart';
-import 'package:billing/InvoicesPageSection/InvoiesPageFiles/InvoiceDefaults.dart';
 import 'package:billing/ReportsPage/ReportsConstants.dart';
 import 'package:billing/ReportsPage/addItemDialog.dart';
 import 'package:billing/ReportsPage/functions.dart';
@@ -34,6 +33,8 @@ class _PurchaseRecordState extends State<PurchaseRecord> {
   String selectedYear = currentYear();
   File purchaseRecordFile = File("Database/Invoices/purchase.json");
   TextEditingController yearController = TextEditingController();
+  TextEditingController searchController = TextEditingController();
+  String searchKey = "";
   @override
   void initState() {
     super.initState();
@@ -60,16 +61,22 @@ class _PurchaseRecordState extends State<PurchaseRecord> {
       //Setting parameter Lists
       availableYears = purchaseRecordContent.keys.toList();
       availableYears.sort();
-      setState(() {
-        availableMonths = purchaseRecordContent[year].keys.toList();
+      dynamic content = purchaseRecordContent[year];
+      List tempList = [];
+      
+      if (content != null) {
+        availableMonths = content.keys.toList();
         // Convert month numbers to month names for selectedMonths
-        selectedMonths.clear(); // Clear existing selections
         for (var monthNumber in availableMonths) {
-          selectedMonths.add(Months[int.parse(monthNumber) - 1]);
+          tempList.add(Months[int.parse(monthNumber) - 1]);
         }
-        validMonth =
-            selectedMonths.isNotEmpty; // Set validMonth based on availability
+      }
+      
+      setState(() {
+        selectedMonths = tempList;
       });
+      
+      validateSelectedMonths(year);
 
       // Setting up  year dropdown related to
       // "availableYear" list
@@ -87,13 +94,43 @@ class _PurchaseRecordState extends State<PurchaseRecord> {
     }
   }
 
+  // Helper function to validate if selected months have data
+  void validateSelectedMonths(String year) {
+    File purchaseRecord = File("Database/Invoices/purchase.json");
+    dynamic purchaseRecordContent = purchaseRecord.readAsStringSync();
+    purchaseRecordContent = jsonDecode(purchaseRecordContent);
+    dynamic content = purchaseRecordContent[year.toString()];
+
+    if (content != null && selectedMonths.isNotEmpty) {
+      List availableMonths = content.keys.toList();
+      bool hasValidMonth = false;
+
+      for (var i = 0; i < selectedMonths.length; i++) {
+        String monthNumber = (Months.indexOf(selectedMonths[i]) + 1)
+            .toString()
+            .padLeft(2, '0');
+        if (availableMonths.contains(monthNumber)) {
+          hasValidMonth = true;
+          break;
+        }
+      }
+
+      setState(() {
+        validMonth = hasValidMonth;
+      });
+    } else {
+      setState(() {
+        validMonth = false;
+      });
+    }
+  }
+
   //This function updates the list of selected Months
   void updateSelectedMonthsinParent(List selectedMonths) {
     setState(() {
       this.selectedMonths = selectedMonths;
-      // Re-evaluate validMonth based on the updated selectedMonths
-      validMonth = selectedMonths.isNotEmpty;
     });
+    validateSelectedMonths(selectedYear);
   }
 
   @override
@@ -119,176 +156,329 @@ class _PurchaseRecordState extends State<PurchaseRecord> {
     dynamic purchaseRecordContent = purchaseRecordFile.readAsStringSync();
     purchaseRecordContent = jsonDecode(purchaseRecordContent);
 
+    File textSize = File("Database/Firm/firmDetails.json");
+    dynamic fileContent = textSize.readAsStringSync();
+    fileContent = jsonDecode(fileContent);
+    int fontSizeSetting = int.parse(fileContent['FontSize']);
+    double paraSize = 0.8 * fontSizeSetting;
+
     return Container(
-      padding: const EdgeInsets.only(top: 38, right: 30, left: 30),
-      color: ColorPalette.offWhite.withOpacity(0.5),
+      padding: const EdgeInsets.only(top: 38, right: 40, left: 40, bottom: 30),
+      color: ColorPalette.offWhite.withOpacity(0.3),
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
             boxShadow: [
               BoxShadow(
-                  color: Color.fromARGB(95, 207, 207, 207),
-                  spreadRadius: 2,
-                  blurRadius: 8,
-                  offset: Offset(0, 2))
+                  color: const Color.fromARGB(40, 0, 0, 0),
+                  spreadRadius: 0,
+                  blurRadius: 20,
+                  offset: const Offset(0, 4))
             ],
             color: Colors.white,
-            borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(13), topRight: Radius.circular(13))),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const SizedBox(
-                        width: 30,
-                      ),
-                      RichText(
-                          text: TextSpan(children: [
-                        TextSpan(
-                            text: "Purchase",
-                            style: TextStyle(
-                                fontSize: fontSize * 1.7,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black)),
-                        TextSpan(
-                            text: " Records",
-                            style: TextStyle(
-                                fontSize: fontSize * 1.7,
-                                fontWeight: FontWeight.bold,
-                                color: ColorPalette.blueAccent)),
-                      ])),
-                      const SizedBox(
-                        width: 20,
-                      ),
-                      ElevatedButton(
-                          style: ButtonStyle(
-                              shape: WidgetStatePropertyAll(
-                                  RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(3))),
-                              backgroundColor: WidgetStatePropertyAll(
-                                  ColorPalette.blueAccent)),
-                          onPressed: () {
-                            showPurchaseEntryDialog(context: context);
-                          },
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: fontSize * .6,
-                                vertical: fontSize * 00.6),
-                            child: Text(
-                              "Add New Record",
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: fontSize * 0.8),
-                            ),
-                          )),
-                      const SizedBox(
-                        width: 20,
-                      ),
-                      Tooltip(
-                        message: "Refresh",
-                        child: InkWell(
-                            onTap: () {
-                              setState(() {
-                                // Re-run setFile with the currently selected year to refresh
-                                setFile(selectedYear);
-                              });
-                            },
-                            child: const Icon(Icons.refresh)),
-                      )
-                    ],
+            borderRadius: BorderRadius.circular(7)),
+        height: double.infinity,
+        width: double.infinity,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Section
+            Container(
+              padding: const EdgeInsets.fromLTRB(40, 32, 40, 24),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  bottom: BorderSide(
+                    color: ColorPalette.offWhite.withOpacity(0.5),
+                    width: 1,
                   ),
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title and Action Buttons Row
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      DropdownMenu(
-                          textStyle: TextStyle(fontSize: fontSize * 0.9),
-                          trailingIcon: const Icon(Icons.keyboard_arrow_down),
-                          onSelected: (value) {
-                            setState(() {
-                              selectedYear = value.toString();
-                              // When the year changes, re-run setFile to update months for the new year
-                              setFile(selectedYear);
-                            });
-                          },
-                          inputDecorationTheme: InputDecorationTheme(
-                              focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                  borderSide: const BorderSide(
-                                      width: 1.3, color: Colors.grey)),
-                              enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                  borderSide:
-                                      const BorderSide(color: Colors.grey)),
-                              border: const OutlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.grey))),
-                          controller: yearController,
-                          width: 160,
-                          dropdownMenuEntries: yearDropdownEntries),
-                      const SizedBox(
-                        width: 14,
-                      ),
-                      Container(
-                        height: 47,
-                        width: 180,
-                        decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                                width: 0.5,
-                                color: const Color.fromARGB(255, 21, 21, 21))),
-                        child: Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                selectedMonths.length == 1
-                                    ? selectedMonths[0]
-                                    : selectedMonths.isEmpty
-                                        ? "Select Month"
-                                        : "Custom",
-                                style: TextStyle(fontSize: fontSize * 0.8),
-                              ),
-                              InkWell(
-                                  onTap: () {
-                                    showMonthsPurchase(
-                                        updateSelectedMonthsinParent:
-                                            updateSelectedMonthsinParent,
-                                        context: context,
-                                        yearController: yearController);
-                                  },
-                                  child: const Icon(Icons.keyboard_arrow_down))
-                            ],
-                          ),
+                      // Title
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                                text: "Purchase",
+                                style: TextStyle(
+                                    fontSize: fontSize * 1.8,
+                                    fontWeight: FontWeight.w700,
+                                    fontFamily: 'Gilroy',
+                                    color: ColorPalette.darkBlue,
+                                    letterSpacing: -0.5)),
+                            TextSpan(
+                                text: " Records",
+                                style: TextStyle(
+                                    fontSize: fontSize * 1.8,
+                                    fontWeight: FontWeight.w700,
+                                    fontFamily: 'Gilroy',
+                                    color: ColorPalette.blueAccent,
+                                    letterSpacing: -0.5)),
+                          ],
                         ),
                       ),
-                      const SizedBox(
-                        width: 20,
-                      )
+                      // Action Buttons
+                      Row(
+                        children: [
+                          ElevatedButton(
+                              style: ButtonStyle(
+                                  shape: WidgetStatePropertyAll(
+                                      RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(7))),
+                                  backgroundColor: WidgetStatePropertyAll(
+                                      ColorPalette.blueAccent)),
+                              onPressed: () {
+                                showPurchaseEntryDialog(context: context);
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20.0, vertical: 12.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      "Add New Record",
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontFamily: 'Poppins',
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: paraSize),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Icon(Icons.add,
+                                        color: Colors.white, size: 18),
+                                  ],
+                                ),
+                              )),
+                          const SizedBox(width: 12),
+                          Tooltip(
+                            message: "Refresh",
+                            child: InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    setFile(selectedYear);
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(7),
+                                    border: Border.all(
+                                        color: ColorPalette.blueAccent, width: 1.5),
+                                    color: Colors.white,
+                                  ),
+                                  child: Icon(Icons.refresh,
+                                      color: ColorPalette.blueAccent, size: 20),
+                                )),
+                          ),
+                        ],
+                      ),
                     ],
-                  )
+                  ),
+                  const SizedBox(height: 28),
+                  // Search Bar
+                  Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(7),
+                      border: Border.all(
+                        color: ColorPalette.offWhite.withOpacity(0.8),
+                        width: 1,
+                      ),
+                      color: ColorPalette.offWhite.withOpacity(0.2),
+                    ),
+                    child: TextField(
+                      controller: searchController,
+                      onChanged: (v) {
+                        setState(() {
+                          searchKey = v;
+                        });
+                      },
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: paraSize,
+                        color: ColorPalette.darkBlue,
+                      ),
+                      decoration: InputDecoration(
+                          suffixIcon: searchKey.isNotEmpty
+                              ? InkWell(
+                                  onTap: () {
+                                    searchController.clear();
+                                    setState(() {
+                                      searchKey = "";
+                                    });
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: Icon(
+                                      Icons.close,
+                                      color: Colors.grey.shade600,
+                                      size: 18,
+                                    ),
+                                  ),
+                                )
+                              : null,
+                          prefixIcon: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Icon(
+                              Icons.search,
+                              color: Colors.grey.shade600,
+                              size: 20,
+                            ),
+                          ),
+                          hintText: "Search by company name, date, or products...",
+                          hintStyle: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: paraSize,
+                            color: Colors.grey.shade500,
+                          ),
+                          floatingLabelBehavior: FloatingLabelBehavior.never,
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(7),
+                              borderSide: BorderSide.none),
+                          focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(7),
+                              borderSide: BorderSide(
+                                color: ColorPalette.blueAccent,
+                                width: 1.5,
+                              )),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Filter Section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Year and Month Filters
+                      Row(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(7),
+                              border: Border.all(
+                                color: ColorPalette.offWhite.withOpacity(0.8),
+                                width: 1,
+                              ),
+                              color: ColorPalette.offWhite.withOpacity(0.2),
+                            ),
+                            child: DropdownMenu(
+                                textStyle: TextStyle(
+                                    fontSize: paraSize,
+                                    fontFamily: 'Poppins',
+                                    color: ColorPalette.darkBlue),
+                                trailingIcon: const Icon(Icons.keyboard_arrow_down,
+                                    color: Colors.grey),
+                                onSelected: (value) {
+                                  setState(() {
+                                    selectedYear = value.toString();
+                                  });
+                                  setFile(selectedYear);
+                                },
+                                inputDecorationTheme: InputDecorationTheme(
+                                    focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(7),
+                                        borderSide: BorderSide(
+                                            width: 1.5,
+                                            color: ColorPalette.blueAccent)),
+                                    enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(7),
+                                        borderSide: BorderSide.none),
+                                    border: const OutlineInputBorder(
+                                        borderSide: BorderSide.none),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 12)),
+                                controller: yearController,
+                                width: 160,
+                                dropdownMenuEntries: yearDropdownEntries),
+                          ),
+                          const SizedBox(width: 14),
+                          Container(
+                            height: 48,
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(7),
+                                border: Border.all(
+                                    width: 1,
+                                    color: ColorPalette.offWhite.withOpacity(0.8)),
+                                color: ColorPalette.offWhite.withOpacity(0.2)),
+                            child: InkWell(
+                                onTap: () {
+                                  showMonthsPurchase(
+                                      updateSelectedMonthsinParent:
+                                          updateSelectedMonthsinParent,
+                                      context: context,
+                                      yearController: yearController);
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 12),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        selectedMonths.length == 1
+                                            ? selectedMonths[0]
+                                            : selectedMonths.isEmpty
+                                                ? "Select Month"
+                                                : "${selectedMonths.length} Months",
+                                        style: TextStyle(
+                                            fontSize: paraSize,
+                                            fontFamily: 'Poppins',
+                                            color: ColorPalette.darkBlue),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Icon(Icons.keyboard_arrow_down,
+                                          color: Colors.grey, size: 20),
+                                    ],
+                                  ),
+                                )),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ],
               ),
-              const SizedBox(
-                height: 50,
-              ),
-              PurchaseRecordHeader(fontSize),
-              const SizedBox(
-                height: 20,
-              ),
-              Expanded(
-                child: selectedMonths.isEmpty || !validMonth
-                    ? Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          nullRecord2(),
+            ),
+            // Table Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(28, 20, 28, 14),
+              child: PurchaseRecordHeader(fontSize),
+            ),
+            // Records List
+            Expanded(
+              child: selectedMonths.isEmpty || !validMonth
+                  ? Center(
+                      child: nullRecord2(),
+                    )
+                  : Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 28),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(7),
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.03),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                            spreadRadius: 0,
+                          ),
                         ],
-                      )
-                    : SingleChildScrollView(
+                      ),
+                      child: SingleChildScrollView(
                         child: ListView.builder(
                             shrinkWrap: true,
                             itemCount: selectedMonths.length,
@@ -301,19 +491,53 @@ class _PurchaseRecordState extends State<PurchaseRecord> {
                                 monthIndex = "0$monthIndex";
                               }
 
-                              //Setting up parameters
-                              dynamic content =
-                                  purchaseRecordContent[selectedYear]
-                                      [monthIndex];
+                              //Setting up parameters with null safety
+                              dynamic content = null;
+                              if (purchaseRecordContent[selectedYear] != null &&
+                                  purchaseRecordContent[selectedYear][monthIndex] != null) {
+                                content = purchaseRecordContent[selectedYear][monthIndex];
+                              }
+
+                              if (content == null || content.isEmpty) {
+                                return const SizedBox.shrink();
+                              }
 
                               return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(selectedMonths[i].toString(),
-                                      style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold)),
-                                  const SizedBox(
-                                    height: 10,
+                                  // Month Header
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(0, 20, 0, 16),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 5,
+                                          height: 24,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(2),
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                ColorPalette.blueAccent,
+                                                ColorPalette.blueAccent.withOpacity(0.7),
+                                              ],
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          "${selectedMonths[i]} Records",
+                                          style: TextStyle(
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.w700,
+                                            fontFamily: 'Gilroy',
+                                            color: ColorPalette.darkBlue,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                   ListView.builder(
                                       shrinkWrap: true,
@@ -323,36 +547,51 @@ class _PurchaseRecordState extends State<PurchaseRecord> {
                                         List keys = temp2.keys.toList();
                                         dynamic fin = temp2[keys[0]];
                                         List dateList = fin['date'].split("/");
-                                        return Column(
-                                          children: [
-                                            PurchaseRecordTile(
-                                                fontSize: fontSize,
-                                                setFile: stateFn,
-                                                sno: i1,
-                                                uid: keys[0],
-                                                year: dateList[2],
-                                                month: dateList[1],
-                                                companyName: fin['name'],
-                                                companyAddress: fin['address'],
-                                                companyPhone: fin['contact'],
-                                                companyGST: fin['gst'],
-                                                date: fin['date'],
-                                                totalAmount: fin['totalAmount'],
-                                                totalTax: fin['totalTax'],
-                                                grandTotal: fin['grandTotal'],
-                                                products: fin['products']),
-                                            const SizedBox(
-                                              height: 10,
-                                            ),
-                                          ],
-                                        );
+                                        
+                                        // Search filtering
+                                        String companyName = fin['name'] ?? "";
+                                        String date = fin['date'] ?? "";
+                                        String productsStr = "";
+                                        if (fin['products'] != null) {
+                                          for (var j = 0; j < fin['products'].length; j++) {
+                                            productsStr += "${fin['products'][j]['name'] ?? ""} ";
+                                          }
+                                        }
+                                        
+                                        bool matchesSearch = searchKey.isEmpty ||
+                                            hasSequentialMatch(searchKey, companyName) ||
+                                            hasSequentialMatch(searchKey, date) ||
+                                            hasSequentialMatch(searchKey, productsStr);
+                                        
+                                        if (!matchesSearch) {
+                                          return const SizedBox.shrink();
+                                        }
+                                        
+                                        return PurchaseRecordTile(
+                                            fontSize: fontSize,
+                                            setFile: stateFn,
+                                            sno: i1,
+                                            uid: keys[0],
+                                            year: dateList[2],
+                                            month: dateList[1],
+                                            companyName: fin['name'],
+                                            companyAddress: fin['address'],
+                                            companyPhone: fin['contact'],
+                                            companyGST: fin['gst'],
+                                            date: fin['date'],
+                                            totalAmount: fin['totalAmount'],
+                                            totalTax: fin['totalTax'],
+                                            grandTotal: fin['grandTotal'],
+                                            products: fin['products']);
                                       }),
+                                  const SizedBox(height: 6),
                                 ],
                               );
-                            })),
-              )
-            ],
-          ),
+                            }),
+                      ),
+                    ),
+            ),
+          ],
         ),
       ),
     );
@@ -366,9 +605,24 @@ Widget PurchaseRecordHeader(double fontSize) {
   }
   return Container(
     decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(4), color: ColorPalette.blueAccent),
-    padding: const EdgeInsets.only(left: 10, right: 10),
-    height: 40,
+        borderRadius: BorderRadius.circular(7),
+        gradient: LinearGradient(
+          colors: [
+            ColorPalette.blueAccent,
+            ColorPalette.blueAccent.withOpacity(0.85),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: ColorPalette.blueAccent.withOpacity(0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
+          ),
+        ]),
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -438,18 +692,29 @@ class _PurchaseRecordTileState extends State<PurchaseRecordTile> {
     if (widget.fontSize < 15) {
       containerWidth = widget.fontSize * 2;
     }
-    return Container(
-      decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(4),
-          color: ColorPalette.offWhite.withOpacity(0.4)),
-      padding: const EdgeInsets.only(left: 10, right: 10),
-      // height: 40,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
+    return Column(
+      children: [
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(7),
+            color: widget.sno % 2 == 0
+                ? ColorPalette.offWhite.withOpacity(0.2)
+                : Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+                spreadRadius: 0,
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
             PurchaseRecordHeaderText(
                 containerWidth * 1, "${widget.sno + 1}", 1, widget.fontSize),
             PurchaseRecordHeaderTextBold(
@@ -494,7 +759,7 @@ class _PurchaseRecordTileState extends State<PurchaseRecordTile> {
                             uid: widget.uid,
                             setFile: widget.setFile);
                       },
-                      child: const Icon(
+                      child:                   const Icon(
                         Icons.delete,
                         color: Colors.red,
                       )),
@@ -502,8 +767,9 @@ class _PurchaseRecordTileState extends State<PurchaseRecordTile> {
               ),
             )
           ],
+            ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -595,7 +861,7 @@ void showMonthsPurchase(
       context: context,
       builder: (c) {
         return ClipRRect(
-            borderRadius: BorderRadius.circular(9),
+            borderRadius: BorderRadius.circular(7),
             child: PurchaseMonths(
               year: yearController.text,
               month: "10",
@@ -674,13 +940,13 @@ class _PurchaseMonthsState extends State<PurchaseMonths> {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(7),
       ),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 19, horizontal: 18),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(9),
+          borderRadius: BorderRadius.circular(7),
         ),
         height: 650,
         width: 500,
@@ -1069,12 +1335,12 @@ class _EditPurchaseDialogState extends State<EditPurchaseDialog> {
     content = jsonDecode(content);
     return Dialog(
       backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
       child: SizedBox(
         height: 800,
         width: 1100,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(7),
           child: SizedBox(
             height: 800,
             child: Stack(
@@ -1268,4 +1534,25 @@ Widget PurchaseDateField(
               child: const Icon(Icons.arrow_drop_down))),
     ),
   );
+}
+
+// Helper function for sequential string matching (used for search)
+bool hasSequentialMatch(String searchString, String mainString) {
+  if (searchString.isEmpty) {
+    return true; // Empty search string matches anything
+  }
+  if (mainString.isEmpty || searchString.length > mainString.length) {
+    return false; // Main string is too short
+  }
+
+  searchString = searchString.toLowerCase();
+  mainString = mainString.toLowerCase();
+
+  for (int i = 0; i <= mainString.length - searchString.length; i++) {
+    if (mainString.substring(i, i + searchString.length) == searchString) {
+      return true;
+    }
+  }
+
+  return false;
 }

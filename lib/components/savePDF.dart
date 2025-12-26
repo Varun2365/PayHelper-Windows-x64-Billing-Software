@@ -85,7 +85,15 @@ Future<String> savePDF(String key, String path) async {
   String? gr = tempPdfContent['GR'];
   String? transport = tempPdfContent['Transport'];
   String? vehicle = tempPdfContent['Vehicle'];
-  String po = tempPdfContent['PO'];
+  dynamic poValue = tempPdfContent['PO'];
+  String po = "";
+  if (poValue != null && poValue != "null" && poValue != "") {
+    String poStr = poValue.toString().trim();
+    if (poStr.isNotEmpty && poStr != "null") {
+      po = poStr;
+    }
+  }
+  log("savePDF - PO Number: '$po' (raw value: $poValue)");
   String? eway = tempPdfContent['Eway'];
   String billName = tempPdfContent['BillingName'];
   String billAddress = tempPdfContent['BillingAdd'];
@@ -407,7 +415,7 @@ Future<String> savePDF(String key, String path) async {
                                                     pw.Text(":", style: text10)
                                                   ])),
                                           pw.SizedBox(width: 10),
-                                          pw.Text(po == null ? "" : po,
+                                          pw.Text(po,
                                               style: text10)
                                         ]),
                                       ]),
@@ -1488,7 +1496,7 @@ Future<String> savePDF(String key, String path) async {
 }
 
 Future<String> savePDF2(String year, String month, String key, String path,
-    BuildContext context) async {
+    BuildContext context, {bool showSuccessDialog = true}) async {
   File invoices = File("Database/Invoices/In.json");
   File settings = File("Database/PDF/saveSettings.json");
   dynamic invoicesContent = invoices.readAsStringSync();
@@ -1509,10 +1517,20 @@ Future<String> savePDF2(String year, String month, String key, String path,
   String invoiceNo = tempPdfContent['InvoiceNo'];
   String date = tempPdfContent['Date'];
   String? place = tempPdfContent['Place'];
+  // GR/LR number from database 'GR' field - must be used in GR/LR No. field in PDF
   String? gr = tempPdfContent['GR'];
   String? transport = tempPdfContent['Transport'];
   String? vehicle = tempPdfContent['Vehicle'];
-  String po = tempPdfContent['PO'];
+  // PO number from database 'PO' field - must be used in PO No. field in PDF
+  dynamic poValue = tempPdfContent['PO'];
+  String po = "";
+  if (poValue != null && poValue != "null" && poValue != "") {
+    String poStr = poValue.toString().trim();
+    if (poStr.isNotEmpty && poStr != "null") {
+      po = poStr;
+    }
+  }
+  log("savePDF2 - PO Number: '$po' (raw value: $poValue)");
   String? eway = tempPdfContent['Eway'];
   String billName = tempPdfContent['BillingName'];
   String billAddress = tempPdfContent['BillingAdd'];
@@ -1820,7 +1838,7 @@ Future<String> savePDF2(String year, String month, String key, String path,
                                                   pw.Text(":", style: text10)
                                                 ])),
                                         pw.SizedBox(width: 10),
-                                        pw.Text(po == null ? "" : po,
+                                        pw.Text(po,
                                             style: text10)
                                       ]),
                                     ]),
@@ -2866,8 +2884,9 @@ Future<String> savePDF2(String year, String month, String key, String path,
   final file = File('$path\\Bill No.$invoiceNo $billName.pdf');
 
   await file.writeAsBytes(bytes);
-  showDialog(
-      context: context,
+  if (showSuccessDialog) {
+    showDialog(
+        context: context,
       builder: (BuildContext context) {
         return Dialog(
           backgroundColor: Colors.white,
@@ -2969,6 +2988,7 @@ Future<String> savePDF2(String year, String month, String key, String path,
               )),
         );
       });
+  }
   return 'PDF Saved';
 }
 
@@ -3008,7 +3028,15 @@ Future<String> PreviewSave(String year, String month, String key) async {
   String sgst = tempPdfContent['sgst'];
   bool igst = tempPdfContent['igst'];
   String igstV = tempPdfContent['igstV'];
-  String po = tempPdfContent['PO'] == null ? "" : tempPdfContent['PO'];
+  dynamic poValue = tempPdfContent['PO'];
+  String po = "";
+  if (poValue != null && poValue != "null" && poValue != "") {
+    String poStr = poValue.toString().trim();
+    if (poStr.isNotEmpty && poStr != "null") {
+      po = poStr;
+    }
+  }
+  log("PreviewSave - PO Number: '$po' (raw value: $poValue)");
   String grandTotal = tempPdfContent['grandtotal'];
   String taxRate = tempPdfContent['TaxRate'];
   String taxAmount = tempPdfContent['TaxAmount'];
@@ -3309,7 +3337,7 @@ Future<String> PreviewSave(String year, String month, String key) async {
                                                   pw.Text(":", style: text10)
                                                 ])),
                                         pw.SizedBox(width: 10),
-                                        pw.Text(po == null ? "" : po,
+                                        pw.Text(po,
                                             style: text10)
                                       ]),
                                     ]),

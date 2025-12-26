@@ -203,7 +203,9 @@ class _PartiesPageLargeState extends State<PartiesPageLarge> {
                           ],
                         )
                       ],
+
                     ),
+
                   ),
                   const SizedBox(
                     height: 10,
@@ -446,3 +448,5 @@ Widget PartyTableRow(
         )
       : SizedBox();
 }
+
+

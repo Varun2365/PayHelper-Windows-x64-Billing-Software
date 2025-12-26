@@ -232,7 +232,7 @@ class _EditInvoiceState extends State<EditInvoice> {
     AddressController.text = tempContent[key]["BillingAdd"];
     PartyController.text = tempContent[key]["BillingName"];
     ContactController.text = tempContent[key]["Contact"];
-    POController.text = tempContent[key]["GR"];
+    POController.text = tempContent[key]["PO"] ?? "";
     TransportController.text = tempContent[key]["Transport"];
     VehicleController.text = tempContent[key]["Vehicle"];
     StationController.text = tempContent[key]["Station"];
@@ -604,6 +604,7 @@ class _EditInvoiceState extends State<EditInvoice> {
                           InvoiceController: InvoiceController,
                           DateController: DateController,
                           GRController: GRController,
+                          POController: POController,
                           TransportController: TransportController,
                           VehicleController: VehicleController,
                           stationController: StationController,
@@ -667,7 +668,7 @@ class _EditInvoice2State extends State<EditInvoice2> {
       InvoiceController = TextEditingController(),
       AddressController = TextEditingController();
   File tempInvoice = File("Database/Invoices/tempInvoice.json"),
-      Invoices = File("Database/Invoices/In.json");
+      Invoices = File("Database/Invoices/Invoices.json");
   // Declaration for all the functions used in this class goes here.
   // This function changes the value of the checkbox.
   void changeValue(bool? newValue) {
@@ -820,38 +821,53 @@ class _EditInvoice2State extends State<EditInvoice2> {
     });
   }
 
-  //This function opens the key from the Invoices.json file
+  //This function opens the key from the In.json file (for reading)
   // and copies the "Products" key to the tempInvoice.json file
   // for the working of the rest of the editInvoicelayout
   void openAndCopy(String key) {
-    dynamic content = Invoices.readAsStringSync();
+    // Read from In.json which has the nested year/month structure
+    File inFile = File("Database/Invoices/In.json");
+    dynamic content = inFile.readAsStringSync();
     content = jsonDecode(content);
-    List itemList = content[widget.year][widget.month][key]["Products"];
-    igst = content[widget.year][widget.month][key]['igst'];
-    Map temp = {"items": itemList};
-    tempInvoice.writeAsStringSync(jsonEncode(temp));
+    if (content[widget.year] != null && 
+        content[widget.year][widget.month] != null &&
+        content[widget.year][widget.month][key] != null) {
+      List itemList = content[widget.year][widget.month][key]["Products"];
+      igst = content[widget.year][widget.month][key]['igst'];
+      Map temp = {"items": itemList};
+      tempInvoice.writeAsStringSync(jsonEncode(temp));
+    }
   }
 
   //This function sets the values of TextEditingControllers
-  // to the ones being fetched from the Invoices.json file
+  // to the ones being fetched from the In.json file (for reading)
+  // but will save to both Invoices.json and In.json
   void setTextControllers() {
     String key = invoiceNo;
-    dynamic tempContent = Invoices.readAsStringSync();
+    // Read from In.json which has the nested year/month structure
+    File inFile = File("Database/Invoices/In.json");
+    dynamic tempContent = inFile.readAsStringSync();
     tempContent = jsonDecode(tempContent);
-    tempContent = tempContent[widget.year][widget.month];
-    DateController.text = tempContent[key]["Date"];
-    GSTController.text = tempContent[key]["BillingGST"];
-    AddressController.text = tempContent[key]["BillingAdd"];
-    PartyController.text = tempContent[key]["BillingName"];
-    ContactController.text = tempContent[key]["Contact"];
-    POController.text = tempContent[key]["GR"];
-    TransportController.text = tempContent[key]["Transport"];
-    VehicleController.text = tempContent[key]["Vehicle"];
-    StationController.text = tempContent[key]["Station"];
-    EWayController.text = tempContent[key]["Eway"];
-    GRController.text = tempContent[key]["GR"];
-    ShippingController.text = tempContent[key]["ShippingAdd"];
-    InvoiceController.text = key;
+    
+    // Add null safety checks
+    if (tempContent[widget.year] != null && 
+        tempContent[widget.year][widget.month] != null &&
+        tempContent[widget.year][widget.month][key] != null) {
+      tempContent = tempContent[widget.year][widget.month][key];
+      DateController.text = tempContent["Date"] ?? "";
+      GSTController.text = tempContent["BillingGST"] ?? "";
+      AddressController.text = tempContent["BillingAdd"] ?? "";
+      PartyController.text = tempContent["BillingName"] ?? "";
+      ContactController.text = tempContent["Contact"] ?? "";
+      POController.text = tempContent["PO"] ?? "";
+      TransportController.text = tempContent["Transport"] ?? "";
+      VehicleController.text = tempContent["Vehicle"] ?? "";
+      StationController.text = tempContent["Station"] ?? "";
+      EWayController.text = tempContent["Eway"] ?? "";
+      GRController.text = tempContent["GR"] ?? "";
+      ShippingController.text = tempContent["ShippingAdd"] ?? "";
+      InvoiceController.text = key;
+    }
   }
 
   // This function deletes the particular product from the 'items' list present
@@ -1189,6 +1205,7 @@ class _EditInvoice2State extends State<EditInvoice2> {
                             InvoiceController: InvoiceController,
                             DateController: DateController,
                             GRController: GRController,
+                            POController: POController,
                             TransportController: TransportController,
                             VehicleController: VehicleController,
                             stationController: StationController,
@@ -1484,6 +1501,7 @@ class GrandTotalSectionEdit extends StatefulWidget {
       InvoiceController,
       DateController,
       GRController,
+      POController,
       TransportController,
       VehicleController,
       stationController,
@@ -1510,6 +1528,7 @@ class GrandTotalSectionEdit extends StatefulWidget {
     required this.InvoiceController,
     required this.DateController,
     required this.GRController,
+    required this.POController,
     required this.TransportController,
     required this.VehicleController,
     required this.stationController,
@@ -1863,6 +1882,7 @@ class _GrandTotalSectionEditState extends State<GrandTotalSectionEdit> {
                           "Date": widget.DateController.text,
                           "Place": widget.GSTController.text,
                           "GR": widget.GRController.text,
+                          "PO": widget.POController.text,
                           "Transport": widget.TransportController.text,
                           "Vehicle": widget.VehicleController.text,
                           "Station": widget.stationController.text,
@@ -1880,11 +1900,31 @@ class _GrandTotalSectionEditState extends State<GrandTotalSectionEdit> {
                           "TaxAmount": sum,
                           "TotalTax": makeFullDouble(totalTax)
                         };
+                        // Save to Invoices.json (primary storage)
                         File invoices = File("Database/Invoices/Invoices.json");
                         dynamic fileContent = invoices.readAsStringSync();
                         fileContent = jsonDecode(fileContent);
                         fileContent[widget.invoiceNo] = save;
                         invoices.writeAsStringSync(jsonEncode(fileContent));
+                        
+                        // Also save to In.json (for home page history) - need to extract year/month from date
+                        String dateStr = widget.DateController.text;
+                        if (dateStr.isNotEmpty) {
+                          List dateParts = dateStr.split("/");
+                          if (dateParts.length == 3) {
+                            String year = dateParts[2];
+                            String month = dateParts[1].length == 1 ? "0${dateParts[1]}" : dateParts[1];
+                            
+                            File inFile = File("Database/Invoices/In.json");
+                            dynamic inContent = inFile.readAsStringSync();
+                            inContent = jsonDecode(inContent);
+                            inContent[year] ??= {};
+                            inContent[year][month] ??= {};
+                            inContent[year][month][widget.invoiceNo] = save;
+                            inFile.writeAsStringSync(jsonEncode(inContent));
+                          }
+                        }
+                        
                         widget.onFileChange();
                         widget.set();
                         Navigator.of(context).pop();
@@ -1919,6 +1959,7 @@ class GrandTotalSectionEdit2 extends StatefulWidget {
       InvoiceController,
       DateController,
       GRController,
+      POController,
       TransportController,
       VehicleController,
       stationController,
@@ -1947,6 +1988,7 @@ class GrandTotalSectionEdit2 extends StatefulWidget {
     required this.InvoiceController,
     required this.DateController,
     required this.GRController,
+    required this.POController,
     required this.TransportController,
     required this.VehicleController,
     required this.stationController,
@@ -2293,6 +2335,7 @@ class _GrandTotalSectionEdit2State extends State<GrandTotalSectionEdit2> {
                           "Date": widget.DateController.text,
                           "Place": widget.GSTController.text,
                           "GR": widget.GRController.text,
+                          "PO": widget.POController.text,
                           "Transport": widget.TransportController.text,
                           "Vehicle": widget.VehicleController.text,
                           "Station": widget.stationController.text,
@@ -2310,12 +2353,24 @@ class _GrandTotalSectionEdit2State extends State<GrandTotalSectionEdit2> {
                           "TaxAmount": formatIntegerToIndian(sum),
                           "TotalTax": makeFullDouble(totalTax)
                         };
-                        File invoices = File("Database/Invoices/In.json");
+                        // Save to Invoices.json (primary storage)
+                        File invoices = File("Database/Invoices/Invoices.json");
                         dynamic fileContent = invoices.readAsStringSync();
                         fileContent = jsonDecode(fileContent);
-                        fileContent[widget.year][widget.month]
-                            [widget.invoiceNo] = save;
+                        fileContent[widget.year] ??= {};
+                        fileContent[widget.year][widget.month] ??= {};
+                        fileContent[widget.year][widget.month][widget.invoiceNo] = save;
                         invoices.writeAsStringSync(jsonEncode(fileContent));
+                        
+                        // Also save to In.json (for home page history)
+                        File inFile = File("Database/Invoices/In.json");
+                        dynamic inContent = inFile.readAsStringSync();
+                        inContent = jsonDecode(inContent);
+                        inContent[widget.year] ??= {};
+                        inContent[widget.year][widget.month] ??= {};
+                        inContent[widget.year][widget.month][widget.invoiceNo] = save;
+                        inFile.writeAsStringSync(jsonEncode(inContent));
+                        
                         widget.onFileChange();
                         widget.set();
                         Navigator.of(context).pop();
