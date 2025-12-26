@@ -13,7 +13,6 @@ import 'package:billing/components/savePDF.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:pdfrx/pdfrx.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -43,10 +42,44 @@ class _InvoicePageLargeState extends State<InvoicePageLarge> {
   List selectedMonths = [Months[int.parse(InvoiceDefaults.defaultMonth) - 1]];
   String searchKey = "";
   bool validMonth = false;
+  
+  // Helper function to validate if selected months exist in the data
+  void validateSelectedMonths(String year) {
+    File invoices = File("Database/Invoices/In.json");
+    dynamic invoicesContent = invoices.readAsStringSync();
+    invoicesContent = jsonDecode(invoicesContent);
+    dynamic content = invoicesContent[year.toString()];
+    
+    if (content != null && selectedMonths.isNotEmpty) {
+      List availableMonths = content.keys.toList();
+      bool hasValidMonth = false;
+      
+      for (var i = 0; i < selectedMonths.length; i++) {
+        String monthNumber = (Months.indexOf(selectedMonths[i]) + 1)
+            .toString()
+            .padLeft(2, '0');
+        if (availableMonths.contains(monthNumber)) {
+          hasValidMonth = true;
+          break;
+        }
+      }
+      
+      setState(() {
+        validMonth = hasValidMonth;
+      });
+    } else {
+      setState(() {
+        validMonth = false;
+      });
+    }
+  }
+  
   void updateSelectedMonths(List l) {
     setState(() {
       selectedMonths = l;
     });
+    // Validate the newly selected months
+    validateSelectedMonths(selectedYear);
   }
 
   void setAvailableMonths(selectedYear) {
@@ -57,14 +90,6 @@ class _InvoicePageLargeState extends State<InvoicePageLarge> {
     if (content != null) {
       List availableMonths = content.keys.toList();
 
-      for (var i = 0; i < selectedMonths.length; i++) {
-        if (availableMonths.contains((Months.indexOf(selectedMonths[i]) + 1)
-            .toString()
-            .padLeft(2, '0'))) {
-          validMonth = true;
-          break;
-        }
-      }
       List availableMonths1 = [];
       for (var i = 0; i < availableMonths.length; i++) {
         availableMonths1.add(int.parse(availableMonths[i]));
@@ -81,6 +106,14 @@ class _InvoicePageLargeState extends State<InvoicePageLarge> {
       setState(() {
         selectedMonths = tempList;
       });
+      
+      // Validate the updated months after setting them
+      validateSelectedMonths(selectedYear);
+    } else {
+      setState(() {
+        selectedMonths = [];
+        validMonth = false;
+      });
     }
   }
 
@@ -90,6 +123,7 @@ class _InvoicePageLargeState extends State<InvoicePageLarge> {
       invoiceContent = jsonDecode(invoiceContent);
     });
   }
+
 
   late dynamic invoiceContent;
   String selectedYear = InvoiceDefaults.defaultYear;
@@ -171,64 +205,83 @@ class _InvoicePageLargeState extends State<InvoicePageLarge> {
       fontSize = 16;
     }
     return Container(
-      padding: const EdgeInsets.only(top: 38, right: 30, left: 30),
-      color: ColorPalette.offWhite.withOpacity(0.5),
+      padding: const EdgeInsets.only(top: 38, right: 40, left: 40, bottom: 30),
+      color: ColorPalette.offWhite.withOpacity(0.3),
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
             boxShadow: [
               BoxShadow(
-                  color: Color.fromARGB(95, 207, 207, 207),
-                  spreadRadius: 2,
-                  blurRadius: 8,
-                  offset: Offset(0, 2))
+                  color: const Color.fromARGB(40, 0, 0, 0),
+                  spreadRadius: 0,
+                  blurRadius: 20,
+                  offset: const Offset(0, 4))
             ],
             color: Colors.white,
-            borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(13), topRight: Radius.circular(13))),
+            borderRadius: BorderRadius.circular(16)),
         height: double.infinity,
         width: double.infinity,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header Section
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+              padding: const EdgeInsets.fromLTRB(40, 32, 40, 24),
               width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  bottom: BorderSide(
+                    color: ColorPalette.offWhite.withOpacity(0.5),
+                    width: 1,
+                  ),
+                ),
+              ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Title
                   RichText(
                     text: TextSpan(
                       children: [
                         TextSpan(
                             text: "All ",
                             style: TextStyle(
-                                fontSize: fontSize * 1.7,
-                                fontWeight: FontWeight.bold,
-                                color: ColorPalette.darkBlue)),
+                                fontSize: fontSize * 1.8,
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'Gilroy',
+                                color: ColorPalette.darkBlue,
+                                letterSpacing: -0.5)),
                         TextSpan(
                             text: "Invoices",
                             style: TextStyle(
-                                fontSize: fontSize * 1.7,
-                                fontWeight: FontWeight.bold,
-                                color: ColorPalette.blueAccent)),
+                                fontSize: fontSize * 1.8,
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'Gilroy',
+                                color: ColorPalette.blueAccent,
+                                letterSpacing: -0.5)),
                       ],
                     ),
                   ),
-                  const SizedBox(
-                    height: 20,
-                  ),
+                  const SizedBox(height: 28),
+                  // Filters and Search Row
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
+                      // Search Bar
+                      Expanded(
+                        child: Container(
+                          height: 48,
                           decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: Colors.grey)),
-                          height: 50,
-                          width: 400,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: ColorPalette.offWhite.withOpacity(0.8),
+                              width: 1,
+                            ),
+                            color: ColorPalette.offWhite.withOpacity(0.2),
+                          ),
                           child: TextField(
                             controller: searchController,
                             onChanged: (v) {
@@ -236,137 +289,179 @@ class _InvoicePageLargeState extends State<InvoicePageLarge> {
                                 searchKey = v;
                               });
                             },
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'Poppins',
+                              fontSize: paraSize,
+                              color: ColorPalette.darkBlue,
                             ),
                             decoration: InputDecoration(
-                                suffixIcon: InkWell(
-                                  onTap: () {
-                                    searchController.clear();
-                                    setState(() {
-                                      searchKey = "";
-                                    });
-                                  },
-                                  child: Padding(
-                                    padding: EdgeInsets.all(8.0),
-                                    child: Icon(
-                                      Icons.close,
-                                      color: Colors.grey,
-                                      size: 17,
-                                    ),
+                                suffixIcon: searchKey.isNotEmpty
+                                    ? InkWell(
+                                        onTap: () {
+                                          searchController.clear();
+                                          setState(() {
+                                            searchKey = "";
+                                          });
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(12.0),
+                                          child: Icon(
+                                            Icons.close,
+                                            color: Colors.grey.shade600,
+                                            size: 18,
+                                          ),
+                                        ),
+                                      )
+                                    : null,
+                                prefixIcon: Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Icon(
+                                    Icons.search,
+                                    color: Colors.grey.shade600,
+                                    size: 20,
                                   ),
                                 ),
-                                prefixIcon: Icon(
-                                  Icons.search,
-                                  color: Colors.grey,
+                                hintText: "Search by party name...",
+                                hintStyle: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: paraSize,
+                                  color: Colors.grey.shade500,
                                 ),
-                                label: Text("Search Party Records"),
                                 floatingLabelBehavior:
                                     FloatingLabelBehavior.never,
                                 enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
                                     borderSide: BorderSide.none),
                                 focusedBorder: OutlineInputBorder(
-                                    borderSide: BorderSide.none)),
-                          )),
-                      const SizedBox(
-                        width: 14,
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(
+                                      color: ColorPalette.blueAccent,
+                                      width: 1.5,
+                                    )),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 14)),
+                          ),
+                        ),
                       ),
+                      const SizedBox(width: 20),
+                      // Filters Section
                       Row(
                         children: [
-                          Row(
-                            children: [
-                              Text(
-                                "Financial Year",
-                                style: TextStyle(
-                                    fontSize: HeadingSize2,
-                                    fontFamily: 'Gilroy',
-                                    fontWeight: FontWeight.w400),
+                          // Financial Year Filter
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            height: 48,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: ColorPalette.offWhite.withOpacity(0.8),
+                                width: 1,
                               ),
-                              const SizedBox(
-                                width: 10,
-                              ),
-                              DropdownMenu(
-                                  textStyle: TextStyle(fontSize: paraSize),
-                                  trailingIcon:
-                                      const Icon(Icons.keyboard_arrow_down),
-                                  onSelected: (value) {
-                                    setState(() {
-                                      selectedMonths.clear();
-
-                                      selectedYear = value.toString();
-                                    });
-                                  },
-                                  inputDecorationTheme: InputDecorationTheme(
-                                      focusedBorder: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                          borderSide: const BorderSide(
-                                              width: 1.3, color: Colors.grey)),
-                                      enabledBorder: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                          borderSide: const BorderSide(
-                                              color: Colors.grey)),
-                                      border: const OutlineInputBorder(
-                                          borderSide:
-                                              BorderSide(color: Colors.grey))),
-                                  controller: YearController,
-                                  width: 160,
-                                  dropdownMenuEntries: drop),
-                            ],
-                          ),
-                          const SizedBox(
-                            width: 30,
-                          ),
-                          Row(
-                            children: [
-                              Text(
-                                "Month",
-                                style: TextStyle(
-                                    fontSize: HeadingSize2,
-                                    fontFamily: 'Gilroy',
-                                    fontWeight: FontWeight.w400),
-                              ),
-                              const SizedBox(
-                                width: 10,
-                              ),
-                              Container(
-                                height: 47,
-                                width: 180,
-                                decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(
-                                        width: 0.5,
-                                        color: const Color.fromARGB(
-                                            255, 21, 21, 21))),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(10),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        selectedMonths.length == 1
-                                            ? selectedMonths[0]
-                                            : selectedMonths.isEmpty
-                                                ? "Select Month"
-                                                : "Custom",
-                                        style: TextStyle(fontSize: paraSize),
-                                      ),
-                                      InkWell(
-                                          onTap: () {
-                                            showMonths(selectedYear);
-                                          },
-                                          child: const Icon(
-                                              Icons.keyboard_arrow_down))
-                                    ],
-                                  ),
+                              color: Colors.white,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  "Year",
+                                  style: TextStyle(
+                                      fontSize: HeadingSize2 * 0.9,
+                                      fontFamily: 'Gilroy',
+                                      fontWeight: FontWeight.w500,
+                                      color: ColorPalette.darkBlue),
                                 ),
-                              )
-                            ],
+                                const SizedBox(width: 12),
+                                DropdownMenu(
+                                    textStyle: TextStyle(
+                                        fontSize: paraSize,
+                                        fontFamily: 'Poppins',
+                                        fontWeight: FontWeight.w500,
+                                        color: ColorPalette.darkBlue),
+                                    trailingIcon: Icon(
+                                      Icons.keyboard_arrow_down,
+                                      color: Colors.grey.shade600,
+                                      size: 20,
+                                    ),
+                                    onSelected: (value) {
+                                      setState(() {
+                                        selectedMonths.clear();
+                                        selectedYear = value.toString();
+                                      });
+                                      setAvailableMonths(selectedYear);
+                                    },
+                                    inputDecorationTheme: InputDecorationTheme(
+                                        focusedBorder: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            borderSide: BorderSide.none),
+                                        enabledBorder: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            borderSide: BorderSide.none),
+                                        border: const OutlineInputBorder(
+                                            borderSide: BorderSide.none)),
+                                    controller: YearController,
+                                    width: 120,
+                                    dropdownMenuEntries: drop),
+                              ],
+                            ),
                           ),
-                          const SizedBox(
-                            width: 20,
+                          const SizedBox(width: 16),
+                          // Month Filter
+                          Container(
+                            height: 48,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: ColorPalette.offWhite.withOpacity(0.8),
+                                width: 1,
+                              ),
+                              color: Colors.white,
+                            ),
+                            child: InkWell(
+                              onTap: () {
+                                showMonths(selectedYear);
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      "Month",
+                                      style: TextStyle(
+                                          fontSize: HeadingSize2 * 0.9,
+                                          fontFamily: 'Gilroy',
+                                          fontWeight: FontWeight.w500,
+                                          color: ColorPalette.darkBlue),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      selectedMonths.length == 1
+                                          ? selectedMonths[0]
+                                          : selectedMonths.isEmpty
+                                              ? "Select"
+                                              : "${selectedMonths.length} Selected",
+                                      style: TextStyle(
+                                          fontSize: paraSize,
+                                          fontFamily: 'Poppins',
+                                          fontWeight: FontWeight.w500,
+                                          color: selectedMonths.isEmpty
+                                              ? Colors.grey.shade500
+                                              : ColorPalette.darkBlue),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Icon(
+                                      Icons.keyboard_arrow_down,
+                                      color: Colors.grey.shade600,
+                                      size: 20,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -375,29 +470,46 @@ class _InvoicePageLargeState extends State<InvoicePageLarge> {
                 ],
               ),
             ),
+            // Table Header
             Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.fromLTRB(28, 20, 28, 14),
               child: InvoiceRecordHeader(fontSize),
             ),
+            // Invoice List
             Expanded(
-                child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: selectedMonths.isEmpty || !validMonth
-                  ? nullRecord()
-                  : ListView.builder(
-                      itemCount: selectedMonths.length,
-                      itemBuilder: (c, i) {
-                        return InvoiceBuider(
-                            searchKey: searchKey,
-                            context: context,
-                            fn: changeFile,
-                            month: (Months.indexOf(selectedMonths[i]) + 1)
-                                .toString(),
-                            year: selectedYear,
-                            content: invoiceContent,
-                            fontSize: fontSize);
-                      }),
-            ))
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 28),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                      spreadRadius: 0,
+                    ),
+                  ],
+                ),
+                child: selectedMonths.isEmpty || !validMonth
+                    ? nullRecord()
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                        itemCount: selectedMonths.length,
+                        itemBuilder: (BuildContext c, int i) {
+                          return InvoiceBuider(
+                              searchKey: searchKey,
+                              context: context,
+                              fn: changeFile,
+                              month: (Months.indexOf(selectedMonths[i]) + 1)
+                                  .toString(),
+                              year: selectedYear,
+                              content: invoiceContent,
+                              fontSize: fontSize);
+                        },
+                      ),
+              ),
+            ),
           ],
         ),
       ),
@@ -520,9 +632,24 @@ Widget InvoiceRecordHeader(double fontSize) {
   }
   return Container(
     decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(4), color: ColorPalette.blueAccent),
-    padding: const EdgeInsets.only(left: 10, right: 10),
-    height: 40,
+        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          colors: [
+            ColorPalette.blueAccent,
+            ColorPalette.blueAccent.withOpacity(0.85),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: ColorPalette.blueAccent.withOpacity(0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
+          ),
+        ]),
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -563,18 +690,24 @@ Widget InvoiceRecordHeader2(
   String currentDirectory = Directory.current.path;
   return Column(
     children: [
-      const SizedBox(
-        height: 12,
-      ),
+      const SizedBox(height: 6),
       Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(7),
           color: index % 2 == 0
-              ? const Color.fromARGB(70, 215, 215, 215)
-              : const Color.fromARGB(70, 255, 255, 255),
+              ? ColorPalette.offWhite.withOpacity(0.2)
+              : Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+              spreadRadius: 0,
+            ),
+          ],
         ),
         padding:
-            const EdgeInsets.only(left: 10, right: 10, top: 14, bottom: 14),
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -715,7 +848,9 @@ Widget InvoiceRecordHeaderText(
           fontSize: fontSize <= 15 ? fontSize : 15,
           color: color == 0 ? Colors.white : Colors.black,
           fontFamily: 'Poppins',
-          fontWeight: FontWeight.w500),
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.3,
+          height: 1.3),
     ),
   );
 }
@@ -803,11 +938,13 @@ Widget InvoiceRecordHeaderText2(
     child: Text(
       text,
       style: TextStyle(
-          fontSize: fontSize <= 15 ? 12 : 13,
+          fontSize: fontSize <= 15 ? 12.5 : 13.5,
           color:
-              color == 0 ? Colors.white : const Color.fromARGB(255, 49, 49, 49),
+              color == 0 ? Colors.white : const Color.fromARGB(255, 45, 45, 45),
           fontFamily: 'Poppins',
-          fontWeight: FontWeight.w400),
+          fontWeight: FontWeight.w500,
+          height: 1.4,
+          letterSpacing: 0.1),
     ),
   );
 }
@@ -827,7 +964,6 @@ Widget InvoiceBuider(
   }
   List keyss = content[year].keys.toList();
   List<Widget> monthInvoiceList = [];
-  bool dataFoundInMonth = false;
   bool showAll = searchKey.trim().isEmpty;
 
   if (keyss.contains(month)) {
@@ -845,7 +981,6 @@ Widget InvoiceBuider(
       if (showAll ||
           hasSequentialMatch(
               searchKey, renderContent[keys[i]]["BillingName"])) {
-        dataFoundInMonth = true;
         invoiceRecords.add(InvoiceRecordHeader2(
             month: month,
             year: year,
@@ -864,13 +999,39 @@ Widget InvoiceBuider(
     }
 
     if (invoiceRecords.isNotEmpty) {
-      monthInvoiceList.add(const SizedBox(
-        height: 15,
-      ));
-      monthInvoiceList.add(Text(
-        "${Months[int.parse(month) - 1]} Invoices",
-        style: const TextStyle(
-            color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
+      monthInvoiceList.add(const SizedBox(height: 24));
+      monthInvoiceList.add(Padding(
+        padding: const EdgeInsets.only(left: 4, bottom: 16),
+        child: Row(
+          children: [
+            Container(
+              width: 5,
+              height: 24,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(3),
+                gradient: LinearGradient(
+                  colors: [
+                    ColorPalette.blueAccent,
+                    ColorPalette.blueAccent.withOpacity(0.8),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              "${Months[int.parse(month) - 1]} Invoices",
+              style: TextStyle(
+                color: ColorPalette.darkBlue,
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'Gilroy',
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
       ));
       monthInvoiceList.addAll(invoiceRecords);
     }
@@ -960,3 +1121,4 @@ void showQR(BuildContext context, double amount) {
     },
   );
 }
+
