@@ -8,6 +8,7 @@ import 'package:billing/NavBar/LargeNavbar.dart';
 import 'package:billing/ReportsPage/ReportsConstants.dart';
 import 'package:billing/ReportsPage/excelCreate.dart';
 import 'package:billing/ReportsPage/functions.dart';
+import 'package:billing/ReportsPage/TaxSummaryReport.dart';
 // ignore: unused_import
 import 'package:billing/Settings%20Page/settingsPageLarge.dart';
 import 'package:billing/colors.dart';
@@ -783,6 +784,16 @@ class _ReportsPageLargeState extends State<ReportsPageLarge> {
                       height: 50,
                     )
                   ],
+                ),
+              ),
+              // Right Side - Tax Summary Report
+              const SizedBox(width: 30),
+              Expanded(
+                child: TaxSummaryReport(
+                  year: yearControllerSales.text,
+                  startMonth: startMonthControllerSales.text,
+                  endMonth: endMonthControllerSales.text,
+                  fontSize: fontSize,
                 ),
               ),
             ],

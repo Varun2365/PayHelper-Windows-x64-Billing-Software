@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:billing/InvoicesPageSection/InvoicePageLarge.dart';
 import 'package:billing/PartiesPage/PartiesPageComponents/PartiesPageComponents.dart';
+import 'package:billing/PartiesPage/PartiesPageComponents/PartyLedger.dart';
 import 'package:billing/colors.dart';
 import 'package:flutter/material.dart';
 
@@ -400,6 +401,18 @@ Widget PartyTableRow(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
+                        Tooltip(
+                          message: "View Ledger",
+                          child: InkWell(
+                              onTap: () {
+                                showPartyLedgerDialog(context, client);
+                              },
+                              child: const Icon(Icons.account_balance_wallet,
+                                  color: Colors.blue)),
+                        ),
+                        const SizedBox(
+                          width: 22,
+                        ),
                         Tooltip(
                           message: "Edit Note",
                           child: InkWell(

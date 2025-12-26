@@ -1144,22 +1144,155 @@ class _BackupSectionState extends State<BackupSection> {
   late double longWidth;
   late double mainHeadingSize;
   late double subHeadingSize;
-  TextEditingController holderNameController = TextEditingController();
-  TextEditingController upiController = TextEditingController();
-  late String path = "";
-  File firmDetails = File("Database/Firm/firmDetails.json");
-  void selectFolder() async {
+  late String exportPath = "";
+  String? importFilePath;
+  bool isExporting = false;
+  bool isImporting = false;
+
+  void selectExportFolder() async {
     dynamic pathh = await FilePicker.platform.getDirectoryPath();
+    if (pathh != null) {
+      setState(() {
+        exportPath = pathh;
+      });
+    }
+  }
+
+  void selectImportFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['bkp', 'json'],
+    );
+
+    if (result != null && result.files.single.path != null) {
+      setState(() {
+        importFilePath = result.files.single.path;
+      });
+    }
+  }
+
+  Future<void> exportBackup() async {
+    if (exportPath.isEmpty) {
+      showAlert(context, "Please select a folder to save backup");
+      return;
+    }
 
     setState(() {
-      path = pathh;
+      isExporting = true;
     });
+
+    try {
+      Map<String, dynamic> backupData = {};
+
+      // Export all database files
+      List<String> filesToBackup = [
+        'Database/Firm/firmDetails.json',
+        'Database/Invoices/In.json',
+        'Database/Invoices/Invoices.json',
+        'Database/Invoices/purchase.json',
+        'Database/Party Records/parties.json',
+        'Database/Party Records/purchaseParties.json',
+        'Database/Products/products.json',
+        'Database/Invoices/invoiceNumber.txt',
+        'Database/Invoices/uniqueid.txt',
+      ];
+
+      for (String filePath in filesToBackup) {
+        File file = File(filePath);
+        if (file.existsSync()) {
+          String fileName = filePath.split('/').last;
+          String content = file.readAsStringSync();
+          backupData[fileName] = content;
+        }
+      }
+
+      // Create backup file with timestamp
+      String timestamp = DateTime.now().toString().replaceAll(':', '-').split('.')[0];
+      String backupFileName = 'PayHelperBackup_$timestamp.bkp';
+      File backupFile = File('$exportPath\\$backupFileName');
+      
+      await backupFile.writeAsString(jsonEncode(backupData));
+      
+      setState(() {
+        isExporting = false;
+      });
+
+      showAlert(context, "Backup exported successfully to:\n$backupFileName");
+    } catch (e) {
+      setState(() {
+        isExporting = false;
+      });
+      showAlert(context, "Error exporting backup: $e");
+    }
+  }
+
+  Future<void> importBackup() async {
+    if (importFilePath == null) {
+      showAlert(context, "Please select a backup file to import");
+      return;
+    }
+
+    setState(() {
+      isImporting = true;
+    });
+
+    try {
+      File backupFile = File(importFilePath!);
+      if (!backupFile.existsSync()) {
+        showAlert(context, "Backup file not found");
+        setState(() {
+          isImporting = false;
+        });
+        return;
+      }
+
+      String backupContent = backupFile.readAsStringSync();
+      Map<String, dynamic> backupData = jsonDecode(backupContent);
+
+      // Restore all files
+      Map<String, String> fileMapping = {
+        'firmDetails.json': 'Database/Firm/firmDetails.json',
+        'In.json': 'Database/Invoices/In.json',
+        'Invoices.json': 'Database/Invoices/Invoices.json',
+        'purchase.json': 'Database/Invoices/purchase.json',
+        'parties.json': 'Database/Party Records/parties.json',
+        'purchaseParties.json': 'Database/Party Records/purchaseParties.json',
+        'products.json': 'Database/Products/products.json',
+        'invoiceNumber.txt': 'Database/Invoices/invoiceNumber.txt',
+        'uniqueid.txt': 'Database/Invoices/uniqueid.txt',
+      };
+
+      for (String fileName in backupData.keys) {
+        if (fileMapping.containsKey(fileName)) {
+          String targetPath = fileMapping[fileName]!;
+          File targetFile = File(targetPath);
+          
+          // Create directory if it doesn't exist
+          Directory(targetFile.parent.path).createSync(recursive: true);
+          
+          // Write the backup content
+          await targetFile.writeAsString(backupData[fileName]);
+        }
+      }
+
+      setState(() {
+        isImporting = false;
+        importFilePath = null;
+      });
+
+      showAlert(context, "Backup imported successfully!\nPlease restart the application.");
+    } catch (e) {
+      setState(() {
+        isImporting = false;
+      });
+      showAlert(context, "Error importing backup: $e");
+    }
   }
 
   void init() async {
     dynamic t = await getApplicationDocumentsDirectory();
     setState(() {
-      path = t.path;
+      exportPath = t.path;
     });
   }
 
@@ -1171,10 +1304,6 @@ class _BackupSectionState extends State<BackupSection> {
     longWidth = rootFontSize * 35;
     mainHeadingSize = rootFontSize * 1.5;
     subHeadingSize = rootFontSize;
-    dynamic content = firmDetails.readAsStringSync();
-    content = jsonDecode(content);
-    holderNameController.text = content['QRName'];
-    upiController.text = content['QRUPI'];
     super.initState();
   }
 
@@ -1206,7 +1335,7 @@ class _BackupSectionState extends State<BackupSection> {
                             fontSize: mainHeadingSize,
                             color: ColorPalette.dark)),
                     TextSpan(
-                        text: "BACKUP",
+                        text: "BACKUP & RESTORE",
                         style: TextStyle(
                             fontFamily: 'Poppins',
                             fontWeight: FontWeight.w500,
@@ -1225,7 +1354,7 @@ class _BackupSectionState extends State<BackupSection> {
                         fontSize: 12,
                         fontWeight: FontWeight.w300),
                     message:
-                        "Change Terms And Conditions here\n\n- This information will be shown at the bottom left section\nof the generated invoice.\n\n- Try to keep the information as short for a single line\n\n",
+                        "Export: Creates a backup of all your database files.\n\nImport: Restores data from a previously exported backup file.\n\n⚠️ Warning: Importing will overwrite your current data!",
                     child: const Icon(
                       Icons.info,
                       color: Colors.grey,
@@ -1233,61 +1362,178 @@ class _BackupSectionState extends State<BackupSection> {
                   ),
                 ],
               ),
-              const SizedBox(
-                height: 20,
-              ),
-              const Text(
-                "Select a folder to save backup file",
-                style: TextStyle(fontFamily: 'Poppins', fontSize: 13),
-              ),
-              const SizedBox(
-                height: 4,
-              ),
-              InkWell(
-                onTap: selectFolder,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                      border: Border.all(color: ColorPalette.dark, width: 0.6),
-                      borderRadius: BorderRadius.circular(5)),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // ignore: unnecessary_string_escapes
-                      Text(
-                        "$path\PayHelperBackup.bkp",
-                        style: const TextStyle(
-                            fontFamily: 'Poppins', fontSize: 16),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 18.0),
-                        child: Icon(
-                          Icons.folder,
-                          color: Color.fromARGB(255, 110, 110, 110),
-                        ),
-                      )
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(
-                height: 40,
-              ),
-              ElevatedButton(
-                  style: ButtonStyle(
-                      shape: WidgetStatePropertyAll(RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4))),
-                      backgroundColor:
-                          WidgetStatePropertyAll(ColorPalette.dark)),
-                  onPressed: () {},
-                  child: const Padding(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 29.0, vertical: 9),
-                    child: Text(
-                      "Save Backup",
-                      style: TextStyle(color: Colors.white),
+              const SizedBox(height: 30),
+              // Export Section
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Export Backup",
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: mainHeadingSize * 0.9,
+                      fontWeight: FontWeight.w500,
+                      color: ColorPalette.darkBlue,
                     ),
-                  )),
+                  ),
+                  const SizedBox(height: 15),
+                  const Text(
+                    "Select a folder to save backup file",
+                    style: TextStyle(fontFamily: 'Poppins', fontSize: 13),
+                  ),
+                  const SizedBox(height: 10),
+                  InkWell(
+                    onTap: selectExportFolder,
+                    child: Container(
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: ColorPalette.offWhite.withOpacity(0.8),
+                          width: 1,
+                        ),
+                        borderRadius: BorderRadius.circular(7),
+                        color: ColorPalette.offWhite.withOpacity(0.2),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              exportPath.isEmpty
+                                  ? "Click to select folder"
+                                  : "$exportPath\\PayHelperBackup_[timestamp].bkp",
+                              style: const TextStyle(
+                                  fontFamily: 'Poppins', fontSize: 14),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 18.0),
+                            child: Icon(
+                              Icons.folder,
+                              color: ColorPalette.blueAccent,
+                            ),
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                      style: ButtonStyle(
+                          shape: WidgetStatePropertyAll(RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(7))),
+                          backgroundColor:
+                              WidgetStatePropertyAll(ColorPalette.dark)),
+                      onPressed: isExporting ? null : exportBackup,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 29.0, vertical: 12),
+                        child: isExporting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                "Export Backup",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontFamily: 'Poppins',
+                                ),
+                              ),
+                      )),
+                ],
+              ),
+              const SizedBox(height: 40),
+              // Import Section
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Import Backup",
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: mainHeadingSize * 0.9,
+                      fontWeight: FontWeight.w500,
+                      color: ColorPalette.darkBlue,
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  const Text(
+                    "Select a backup file (.bkp) to restore",
+                    style: TextStyle(fontFamily: 'Poppins', fontSize: 13),
+                  ),
+                  const SizedBox(height: 10),
+                  InkWell(
+                    onTap: selectImportFile,
+                    child: Container(
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: ColorPalette.offWhite.withOpacity(0.8),
+                          width: 1,
+                        ),
+                        borderRadius: BorderRadius.circular(7),
+                        color: ColorPalette.offWhite.withOpacity(0.2),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              importFilePath == null
+                                  ? "Click to select backup file"
+                                  : importFilePath!.split('\\').last,
+                              style: const TextStyle(
+                                  fontFamily: 'Poppins', fontSize: 14),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 18.0),
+                            child: Icon(
+                              Icons.file_present,
+                              color: ColorPalette.blueAccent,
+                            ),
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                      style: ButtonStyle(
+                          shape: WidgetStatePropertyAll(RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(7))),
+                          backgroundColor:
+                              WidgetStatePropertyAll(ColorPalette.dark)),
+                      onPressed: isImporting ? null : importBackup,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 29.0, vertical: 12),
+                        child: isImporting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                "Import Backup",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontFamily: 'Poppins',
+                                ),
+                              ),
+                      )),
+                ],
+              ),
             ],
           ),
         ),
